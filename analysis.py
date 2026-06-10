@@ -16,9 +16,58 @@ for col in df.select_dtypes(include='object'):
 if 'Gender' in df.columns:
     df['Gender'] = df['Gender'].str.title()   
 df.replace('', np.nan, inplace=True)
+
 print(df.isnull().sum())
 print(df['Churn'].value_counts())
+df = df[(df['Age'] >= 18) & (df['Age'] <= 100)]
+# Check Outliers
 
+Q1 = df['Total Spend'].quantile(0.25)
+Q3 = df['Total Spend'].quantile(0.75)
+
+IQR = Q3 - Q1
+
+lower = Q1 - 1.5 * IQR
+upper = Q3 + 1.5 * IQR
+
+outliers = df[
+    (df['Total Spend'] < lower) |
+    (df['Total Spend'] > upper)
+]
+
+print("Outliers:", len(outliers))
+# Create Risk Category
+
+df['risk_level'] = np.where(
+    (df['Support Calls'] > 5) &
+    (df['Payment Delay'] > 15),
+    'High Risk',
+    'Low Risk'
+)
+# customer segmentTation using numpy 
+conditions = [
+    df['Tenure'] <= 12,
+    (df['Tenure'] > 12) & (df['Tenure'] <= 36),
+    df['Tenure'] > 36
+]
+
+choices = [
+    'New Customer',
+    'Regular Customer',
+    'Loyal Customer'
+]
+
+df['customer_type'] = np.select(
+    conditions,
+    choices,
+    default='Unknown'
+)
+print(df['customer_type'])
+
+#final check
+print(df.shape)
+print(df.head())
+df.to_csv('cleaned_dataset.csv')
 # churn distribution
 x= df['Churn'].value_counts()
 plt.figure(figsize=(6,4))
@@ -26,14 +75,13 @@ plt.bar(x.index,x.values, color='orange',edgecolor='black')
 plt.title("churn distribution")
 plt.xlabel('index') 
 plt.ylabel('vale') 
-plt.savefig("churndistribution.png")
+plt.savefig("churn_distribution.png")
 plt.show()
-
+# churn no churn
 churn_rate = df['Churn'].mean() * 100
 print(f"Churn Rate: {churn_rate:.2f}%")
 pd.crosstab(df['Gender'], df['Churn'])
 churn_counts = df['Churn'].value_counts()
-# churn no churn
 plt.figure(figsize=(6,6))
 plt.pie(
     churn_counts.values,
@@ -42,7 +90,18 @@ plt.pie(
 )
 plt.title('Customer Churn Percentage')
 plt.savefig("churn.png")
+plt.show()
 
+#age distribution
+plt.figure(figsize=(8,5))
+
+plt.hist(df['Age'], bins=15)
+
+plt.title("Age Distribution")
+plt.xlabel("Age")
+plt.ylabel("Number of Customers")
+
+plt.savefig("age_distribution.png", dpi=300)
 plt.show()
 # contract vs churn
 
@@ -94,18 +153,18 @@ plt.show()
 # monthly charges vs churn
 
 plt.figure(figsize=(8,5))
-# monthly charges vs churn
+# totalspend vs churn
 df.boxplot(
     column='Total Spend',
     by='Churn'
 )
 
-plt.title('Monthly Charges by Churn')
+plt.title('total spend by Churn')
 plt.suptitle('')
 plt.xlabel('Churn')
-plt.ylabel('Monthly Charges')
+plt.ylabel('total send')
 
-plt.savefig("monthlybychurn.png")
+plt.savefig("totalspend_vs_churn.png")
 
 plt.show()
 # tenure by churn
@@ -155,32 +214,7 @@ plt.pie(
 plt.title("Average Age by Churn Status")
 plt.savefig("agebychurn.png")
 plt.show()
-# customer segmentTation using numpy 
-conditions = [
-    df['Tenure'] <= 12,
-    (df['Tenure'] > 12) & (df['Tenure'] <= 36),
-    df['Tenure'] > 36
-]
 
-choices = [
-    'New Customer',
-    'Regular Customer',
-    'Loyal Customer'
-]
-
-df['customer_type'] = np.select(
-    conditions,
-    choices,
-    default='Unknown'
-)
-print(df['customer_type'])
-df['risk_score'] = np.where(
-    (df['Tenure'] < 12) &
-    (df['Total Spend'] > 70),
-    'High Risk',
-    'Low Risk'
-)
-print(df['risk_score'])
 corr = df.corr(numeric_only=True)
 
 plt.figure(figsize=(8,6))
